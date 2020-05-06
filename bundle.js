@@ -6,64 +6,43 @@
   const height=parseFloat(svg.attr('height'));//这里attr返回的是string类型，html中的属性值都是string类型的，DOM就是这样定义的
   const width=+svg.attr('width');//隐式类型转换
 
-  const g=svg.append('g')
-    .attr('transform',`translate(${width/2},${height/2})`);
+  const render=data =>{
+    const xValue=d=>d.population;//这样写以后改变属性容易
+    const yValue=d=>d.country;
+    const margin={top:20,right:20,bottom:20,left:80};
+    const innerWidth=width-margin.left-margin.right;
+    const innerHeight=height-margin.top-margin.bottom;
+    //以下代码和某一特定数据集无关
+    const xScale=d3.scaleLinear()
+      .domain([0,d3.max(data,xValue)])
+      .range([0,innerWidth]);
 
-  const circle=g.append('circle')
-    .attr('r',height/2)
-    .attr('fill','yellow')
-    .attr('stroke','black');
-  //.attr函数传两个参数返回的是调用它的元素，所以可以链式调用,method chain
+    const yScale=d3.scaleBand()//scaleband用于ordinal的值
+      .domain(data.map(yValue))//y轴是所有国家的值
+      .range([0,innerHeight])
+      .padding(0.1);
 
-  const eyeSpacing=100;
-  const eyeYoffset=-70;
-  const eyeRadius=30;
-  const eyeBrowHeight=15;
-  const eyeBrowWidth=70;
-  const eyeBrowYoffset=-70;
+    const g=svg.append('g')
+      .attr('transform',`translate(${margin.left},${margin.top})`);
 
-  const eyeG=g.append('g')//eyeG的默认位置是g的定位也就是width/2,height/2
-    .attr('fill','black')
-    .attr('transform',`translate(0,${eyeYoffset})`);
+    g.append('g').call(d3.axisLeft(yScale));
+    g.append('g').call(d3.axisBottom(xScale))
+      .attr('transform',`translate(0,${innerHeight})`);
 
-  const eyebrowG=eyeG
-    .append('g')
-      .attr('transform',`translate(0,${eyeBrowYoffset})`);
-  //因为下面还有对eyebrowG的append操作，所以必须单独拿出来，有append不能用transition
-  eyebrowG
-    .transition().duration(2000)//transition的第一个参数是以什么为基准移动，可以是x,y,tranform
-      .attr('transform',`translate(0,${eyeBrowYoffset-50})`)
-    .transition().duration(2000)
-      .attr('transform',`translate(0,${eyeBrowYoffset})`);
+    g.selectAll('rect').data(data)//创建D3 data join
+      .enter().append('rect')
+        .attr('y',d=>yScale(yValue(d)))
+        .attr('width',d=>xScale(xValue(d)))
+        .attr('height',yScale.bandwidth());//bandwidth是一个bar的宽度计算值
+  };
 
-  const leftEyebrow=eyebrowG
-    .append('rect')
-      .attr('width',eyeBrowWidth)
-      .attr('height',eyeBrowHeight)
-      .attr('x',-eyeSpacing-eyeBrowWidth/2);
-
-    const rightEyebrow=eyebrowG.append('rect')
-      .attr('width',eyeBrowWidth)
-      .attr('height',eyeBrowHeight)
-      .attr('x',eyeSpacing-eyeBrowWidth/2);
-
-
-  const lefteye=eyeG.append('circle')
-    .attr('r',eyeRadius)
-    .attr('cx',-eyeSpacing);
-
-    const righteye=eyeG.append('circle')
-      .attr('r',eyeRadius)
-      .attr('cx',+eyeSpacing);
-
-
-  const mouth=g.append('path')
-    .attr('d',d3.arc()({
-    innerRadius: 150,
-    outerRadius: 170,
-    startAngle:Math.PI/2,
-    endAngle: Math.PI*3/2//用弧度表示，整个圆的弧度数是2pi
-  }
-  ));
+  //d3的csv函数发起一个对data.csv文件的xml http请求，将data.csv中的字符串载入并解析成一个对象数组
+  //每个对象的key表示columns，value表table中的具体值
+  d3.csv('data.csv').then(data=>{
+    data.forEach(d => {
+      d.population = +d.population*1000;
+    });
+    render(data);
+  });//csv('')返回一个Promise，当data加载进来时解决（resolve）
 
 }(d3));
