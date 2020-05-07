@@ -1,10 +1,10 @@
 body{
   margin:0px;
-  overflow: hidden;
+  //overflow: hidden;
 }
 rect{
-  fill:steelblue
+  fill:steelblue;
 }
 text{
-  font-size:2em;
+  font-size:1.2em;
 }
